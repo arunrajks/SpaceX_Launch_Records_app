@@ -75,7 +75,7 @@ min_slid = 0
 max_slid = 10000
 # Create Dash app
 app = dash.Dash(__name__)
-
+server = app.server
 # Create the dropdown menu options
 dropdown_options = [{'label': i, 'value': i} for i in launch_sites]
 dropdown_options.append({'label': 'All sites', 'value': 'All sites'})
