@@ -2,13 +2,17 @@ import pandas as pd
 import dash
 from dash import dcc, html
 from dash_html_components import Iframe
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
+from dash import callback_context
 import plotly.express as px
 import folium
 import os
 import dash_bootstrap_components as dbc
 from folium.plugins import MousePosition
 from folium.plugins import MarkerCluster
+import joblib
+import base64
+import numpy as np
 
 # Reading data
 spacex_df = pd.read_csv("spacex_launch_dash.csv")
@@ -18,6 +22,22 @@ launch_sites = spacex_df['Launch Site'].unique()
 
 spacex_geo = pd.read_csv("spacex_launch_geo.csv")
 select_geo = spacex_geo.groupby('Launch Site')[['Lat', 'Long']].mean()
+# load ml model
+# load_model = pickle.load(open('launch_predict_SpX_DT.sav', 'rb'))
+# Load the model and the scaler
+loaded_model = joblib.load('launch_predict_SpX_DT.joblib')
+loaded_scaler = joblib.load('model_scaler.joblib')
+X = pd.read_csv('dataset_part_3.csv')
+
+# Sample data for dropdowns
+
+payload_options = [{'label': i, 'value': i}
+                   for i in np.linspace(100, 15000, 10)]
+reused_count_options = [{'label': i, 'value': i}
+                        for i in X.ReusedCount.unique()]
+orbit_options = [{'label': i, 'value': i}
+                 for i in spacex_geo['Orbit'].unique()]
+launchsite_options = [{'label': i, 'value': i} for i in launch_sites]
 
 
 def map_lauch_loc(df):
@@ -48,12 +68,13 @@ def map_lauch_loc(df):
 
     return my_map
 
-    #    , avg_long = select_geo[['Lat', 'Long']].mean()
+  
 
 
+min_slid = 0
+max_slid = 10000
 # Create Dash app
 app = dash.Dash(__name__)
-server = app.server
 
 # Create the dropdown menu options
 dropdown_options = [{'label': i, 'value': i} for i in launch_sites]
@@ -78,6 +99,67 @@ app.layout = html.Div(children=[
         html.Iframe(id='map', srcDoc=map_html, width='50%', height='600'),
         dcc.Graph(id='success-pie-chart')
     ], style={'display': 'flex'}),
+
+    html.Br(),
+    html.Div([html.Div([
+        html.H1('SpaceX Launch prediction', style={
+                'textAlign': 'center', 'color': '#503D36', 'font-size': 40}),
+
+        # First Column of Dropdowns
+
+        html.Div([
+            html.Label("Select Payload:"),
+            dcc.Slider(
+                id='slider',
+                min=min_slid,
+                max=max_slid,
+                marks={i: str(i) for i in range(
+                    int(min_slid), int(max_slid) + 1, 2000)},
+                value=min_slid
+            ),
+
+
+            html.Label("Select Reused Count:"),
+            dcc.Dropdown(
+                id='reused-count-dropdown',
+                options=reused_count_options,
+                value=reused_count_options[0]['value']
+            ),
+        ], style={'width': '50%', 'display': 'inline-block'}),
+
+        # Second Column of Dropdowns
+        html.Div([
+            html.Label("Select Orbit:"),
+            dcc.Dropdown(
+                id='orbit-dropdown',
+                options=orbit_options,
+                value=orbit_options[0]['value']
+            ),
+
+            html.Label("Select Launch Site:"),
+            dcc.Dropdown(
+                id='launchsite-dropdown',
+                options=launchsite_options,
+                value=launchsite_options[0]['value']
+            ),
+        ], style={'width': '50%', 'display': 'inline-block'}),
+
+        html.Button('Predict the Success', id='generate-btn', n_clicks=0),
+    ], style={'width': '50%', 'display': 'inline-block'}),
+
+        # Second Half
+        # html.Label[title=f'Selected Options: {selected_option1}, {selected_option2}')]
+        # html.Label("Prediction Result:", id='prediction-label'),
+        # html.Div([
+        #     html.Img(id='output_fig')
+        # ], style={'margin-top': '20px'})]),
+
+        html.Div([
+            html.Label("Prediction Result:"),
+            html.Label(id='prediction-label'),
+            html.Img(id='output_fig')
+        ], style={'margin-right': '40px'})]),
+
     html.Br(),
     html.P("Payload range (Kg):"),
     dcc.RangeSlider(
@@ -92,14 +174,14 @@ app.layout = html.Div(children=[
     html.Div([dcc.Graph(id='success-payload-scatter-chart')]),
 ])
 
+
 # Callback for updating pie chart and map
 
 
 @app.callback(
     [Output(component_id='map', component_property='srcDoc'),
      Output(component_id='success-pie-chart', component_property='figure')],
-    Input(component_id='site-dropdown', component_property='value')
-)
+    Input(component_id='site-dropdown', component_property='value'))
 def update_pie_chart(selected_site):
     if selected_site == 'All sites':
         # Create a pie chart showing success count for all sites
@@ -151,6 +233,50 @@ def update_pie_chart(selected_site):
 
     return [map_html, fig_pie]
 
+
+# Function to encode an image file to base64
+def encode_image(image_path):
+    with open(image_path, 'rb') as file:
+        encoded_image = base64.b64encode(file.read()).decode('utf-8')
+    return f'data:image/png;base64,{encoded_image}'
+
+
+@app.callback(
+    [Output(component_id='prediction-label', component_property='children'),
+     Output(component_id='output_fig', component_property='src')],
+    [Input(component_id='generate-btn', component_property='n_clicks')],
+    [State(component_id='slider', component_property='value'),
+     State(component_id='reused-count-dropdown', component_property='value'),
+     State(component_id='orbit-dropdown', component_property='value'),
+     State(component_id='launchsite-dropdown', component_property='value')]
+)
+def update_output_image(n_clicks, selected_payload, selected_reused_count, selected_orbit, selected_launch_site):
+    pr_df = X.iloc[25].copy()
+
+    print(selected_payload)
+    pr_df['PayloadMass'] = float(selected_payload)
+
+    pr_df['ReusedCount'] = selected_reused_count
+    if selected_orbit in pr_df.index:
+        pr_df[selected_orbit] = 1
+    if selected_launch_site in pr_df.index:
+        pr_df[selected_launch_site] = 1
+
+    scaled_dat = loaded_scaler.transform(pr_df.to_numpy().reshape(1, -1))
+    if loaded_model.predict(scaled_dat):
+        # If 'True', load the image from a local file
+        image_path = 'landing_1.gif'  # Replace with the actual path to your image
+        prediction_result = f"Successful Launch! selected values {selected_payload}, {selected_reused_count}, {selected_orbit},{selected_launch_site} "
+    else:
+        # If not 'True', return an empty image (or None)
+        image_path = 'crash.gif'  # Replace with the actual path to your image
+        prediction_result = f"Launch Failure! selected values {selected_payload}, {selected_reused_count}, {selected_orbit},{selected_launch_site} "
+
+    encoded_image = encode_image(image_path)
+
+    return [prediction_result, encoded_image]
+
+
 # Callback for updating payload scatter chart
 
 
@@ -174,7 +300,7 @@ def update_payload_chart(selected_site, value):
                              y='class',
                              color='Booster Version Category',
                              title=f'Correlation between Payload and Success for Site = {selected_site}',
-                             
+
                              )
     fig_scatter.update_traces(marker=dict(size=20))
 
