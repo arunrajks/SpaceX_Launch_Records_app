@@ -6,3 +6,6 @@ pandas==2.1.1
 plotly==5.17.0
 gunicorn
 dash-tools
+joblib==1.1.0
+base64==1.7.0
+
