@@ -34,7 +34,7 @@ X = pd.read_csv('dataset_part_3.csv')
 payload_options = [{'label': i, 'value': i}
                    for i in np.linspace(100, 15000, 10)]
 reused_count_options = [{'label': i, 'value': i}
-                        for i in X.ReusedCount.unique()]
+                        for i in sorted(X.ReusedCount.unique())]
 orbit_options = [{'label': i, 'value': i}
                  for i in spacex_geo['Orbit'].unique()]
 launchsite_options = [{'label': i, 'value': i} for i in launch_sites]
@@ -109,14 +109,14 @@ app.layout = html.Div(children=[
                     max=max_slid,
                     marks={i: str(i) for i in range(
                         int(min_slid), int(max_slid) + 1, 2000)},
-                    value=min_slid
+                    value=2000
                 ),
 
                 html.Label("Select Reused Count:"),
                 dcc.Dropdown(
                     id='reused-count-dropdown',
                     options=reused_count_options,
-                    value=reused_count_options[0]['value']
+                    value=0
                 ),
             ]),
 
@@ -147,8 +147,9 @@ app.layout = html.Div(children=[
         dcc.Graph(id='success-pie-chart', style={'width': '50%'}),
         html.Div([
             html.Label("Prediction Result:", style={'text-align': 'right'}),
-            html.Label(id='prediction-label',style={'text-align': 'right'}),
-            html.Img(id='output_fig',style={'display': 'block', 'margin': 'auto'})
+            html.Label(id='prediction-label', style={'text-align': 'right'}),
+            html.Img(id='output_fig', style={
+                     'display': 'block', 'margin': 'auto'})
         ], style={'width': '50%', 'margin-right': '40px'}),
     ], style={'display': 'flex'}),
 
