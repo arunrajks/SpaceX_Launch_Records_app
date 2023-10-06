@@ -68,8 +68,6 @@ def map_lauch_loc(df):
 
     return my_map
 
-  
-
 
 min_slid = 0
 max_slid = 10000
@@ -96,70 +94,66 @@ app.layout = html.Div(children=[
     # html.Iframe(id='map',srcDoc=map_html,width='50%',height='600'),
     # html.Div([dcc.Graph(id='success-pie-chart')], style={'display': 'flex'}),
     dbc.Row([
-        html.Iframe(id='map', srcDoc=map_html, width='50%', height='600'),
-        dcc.Graph(id='success-pie-chart')
+        html.Iframe(id='map', srcDoc=map_html, style={
+                    'width': '50%', 'height': '600px'}),
+        html.Div([
+            html.H1('SpaceX Launch prediction', style={
+                'textAlign': 'center', 'color': '#503D36', 'font-size': 40}),
+
+            # First Column of Dropdowns
+            html.Div([
+                html.Label("Select Payload:"),
+                dcc.Slider(
+                    id='slider',
+                    min=min_slid,
+                    max=max_slid,
+                    marks={i: str(i) for i in range(
+                        int(min_slid), int(max_slid) + 1, 2000)},
+                    value=min_slid
+                ),
+
+                html.Label("Select Reused Count:"),
+                dcc.Dropdown(
+                    id='reused-count-dropdown',
+                    options=reused_count_options,
+                    value=reused_count_options[0]['value']
+                ),
+            ]),
+
+            # Second Column of Dropdowns
+            html.Div([
+                html.Label("Select Orbit:"),
+                dcc.Dropdown(
+                    id='orbit-dropdown',
+                    options=orbit_options,
+                    value=orbit_options[0]['value']
+                ),
+
+                html.Label("Select Launch Site:"),
+                dcc.Dropdown(
+                    id='launchsite-dropdown',
+                    options=launchsite_options,
+                    value=launchsite_options[0]['value']
+                ),
+            ]),
+
+            html.Button('Predict the Success', id='generate-btn', n_clicks=0),
+        ], style={'width': '40%', 'margin': 'auto'})
     ], style={'display': 'flex'}),
 
     html.Br(),
-    html.Div([html.Div([
-        html.H1('SpaceX Launch prediction', style={
-                'textAlign': 'center', 'color': '#503D36', 'font-size': 40}),
 
-        # First Column of Dropdowns
-
+    dbc.Row([
+        dcc.Graph(id='success-pie-chart', style={'width': '50%'}),
         html.Div([
-            html.Label("Select Payload:"),
-            dcc.Slider(
-                id='slider',
-                min=min_slid,
-                max=max_slid,
-                marks={i: str(i) for i in range(
-                    int(min_slid), int(max_slid) + 1, 2000)},
-                value=min_slid
-            ),
+            html.Label("Prediction Result:", style={'text-align': 'right'}),
+            html.Label(id='prediction-label',style={'text-align': 'right'}),
+            html.Img(id='output_fig',style={'display': 'block', 'margin': 'auto'})
+        ], style={'width': '50%', 'margin-right': '40px'}),
+    ], style={'display': 'flex'}),
 
-
-            html.Label("Select Reused Count:"),
-            dcc.Dropdown(
-                id='reused-count-dropdown',
-                options=reused_count_options,
-                value=reused_count_options[0]['value']
-            ),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-
-        # Second Column of Dropdowns
-        html.Div([
-            html.Label("Select Orbit:"),
-            dcc.Dropdown(
-                id='orbit-dropdown',
-                options=orbit_options,
-                value=orbit_options[0]['value']
-            ),
-
-            html.Label("Select Launch Site:"),
-            dcc.Dropdown(
-                id='launchsite-dropdown',
-                options=launchsite_options,
-                value=launchsite_options[0]['value']
-            ),
-        ], style={'width': '50%', 'display': 'inline-block'}),
-
-        html.Button('Predict the Success', id='generate-btn', n_clicks=0),
-    ], style={'width': '50%', 'display': 'inline-block'}),
-
-        # Second Half
-        # html.Label[title=f'Selected Options: {selected_option1}, {selected_option2}')]
-        # html.Label("Prediction Result:", id='prediction-label'),
-        # html.Div([
-        #     html.Img(id='output_fig')
-        # ], style={'margin-top': '20px'})]),
-
-        html.Div([
-            html.Label("Prediction Result:"),
-            html.Label(id='prediction-label'),
-            html.Img(id='output_fig')
-        ], style={'margin-right': '40px'})]),
-
+    # slider for scaterplot
+    html.Br(),
     html.Br(),
     html.P("Payload range (Kg):"),
     dcc.RangeSlider(
