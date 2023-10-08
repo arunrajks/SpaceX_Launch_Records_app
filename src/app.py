@@ -15,6 +15,8 @@ import base64
 import numpy as np
 
 # Reading data
+
+
 spacex_df = pd.read_csv("spacex_launch_dash.csv")
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
@@ -144,10 +146,11 @@ app.layout = html.Div(children=[
     html.Br(),
 
     dbc.Row([
-        dcc.Graph(id='success-pie-chart', style={'width': '50%'}),
-        html.Div([
+        dcc.Graph(id='success-pie-chart', style={'width': '50%','margin': 'auto'}),
+        html.Div([html.Br(),
             html.Label("Prediction Result:", style={'text-align': 'right'}),
             html.Label(id='prediction-label', style={'text-align': 'right'}),
+            html.Br(),
             html.Img(id='output_fig', style={
                      'display': 'block', 'margin': 'auto'})
         ], style={'width': '50%', 'margin-right': '40px'}),
@@ -191,9 +194,9 @@ def update_pie_chart(selected_site):
                          )
 
         location_map = map_lauch_loc(select_geo)
-        location_map.save('SpaceX_lauch_site.html')
+        location_map.save('SpaceX_launch_site.html')
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        html_file_name = 'SpaceX_lauch_site.html'
+        html_file_name = 'SpaceX_launch_site.html'
         html_file_path = os.path.join(script_dir, html_file_name)
         if os.path.exists(html_file_path):
             map_html = open(html_file_path, 'r').read()
@@ -216,10 +219,10 @@ def update_pie_chart(selected_site):
                       popup=f"{selected_site} Launch Site").add_to(m)
         dff = select_geo.loc[selected_site].to_frame().T
         location_map = map_lauch_loc(dff)
-        location_map.save('SpaceX_lauch_site.html')
+        location_map.save('SpaceX_launch_site.html')
 
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        html_file_name = 'SpaceX_lauch_site.html'
+        html_file_name = 'SpaceX_launch_site.html'
         html_file_path = os.path.join(script_dir, html_file_name)
         if os.path.exists(html_file_path):
             map_html = open(html_file_path, 'r').read()
